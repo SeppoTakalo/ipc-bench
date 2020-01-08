@@ -12,4 +12,5 @@ add_executable(tcp_thr src/tcp_thr.c)
 add_executable(udp_lat src/udp_lat.c)
 add_executable(unix_lat src/unix_lat.c)
 add_executable(unix_thr src/unix_thr.c)
-
+add_executable(gettimeofday src/gettimeofday.c)
+add_executable(sysv_msgqueue src/sysv_msgqueue.c)
