@@ -43,7 +43,7 @@ int main (int ac, char **av) {
 	if (ac > 1 && av[1])
 		count = strtol(av[1], NULL, 10);
 
-	printf("Running %d loops of %d us delays with usleep()\n", count, DELAY_US);
+	printf("Running %d loops of %ld us delays with usleep()\n", count, DELAY_US);
 	min = 1.0;
 	max = avg = 0.0;
 	for(int i=0;i < count; i++) {
