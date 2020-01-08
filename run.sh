@@ -30,3 +30,7 @@ echo "gettimeofday()"
 echo
 echo "System V IPC message queue:"
 ./sysv_msgqueue 256 10000
+
+echo
+echo "usleep():"
+./wakeup_latency 1000
