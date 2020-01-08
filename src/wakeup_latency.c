@@ -32,38 +32,42 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define DELAY_US	100L
+#define DELAY_US    100L
 
-int main (int ac, char **av) {
-	long s;
-	double min, max, avg, diff;
-	struct timeval tv1, tv2;
-	int count = 200;
+int main (int ac, char **av)
+{
+    long s;
+    double min, max, avg, diff;
+    struct timeval tv1, tv2;
+    int count = 200;
 
-	if (ac > 1 && av[1])
-		count = strtol(av[1], NULL, 10);
+    if (ac > 1 && av[1]) {
+        count = strtol(av[1], NULL, 10);
+    }
 
-	printf("Running %d loops of %ld us delays with usleep()\n", count, DELAY_US);
-	min = 1.0;
-	max = avg = 0.0;
-	for(int i=0;i < count; i++) {
-		gettimeofday(&tv1, NULL);
-		s = DELAY_US + tv1.tv_usec;
-		usleep(DELAY_US);
-		gettimeofday(&tv2, NULL);
+    printf("Running %d loops of %ld us delays with usleep()\n", count, DELAY_US);
+    min = 1.0;
+    max = avg = 0.0;
+    for(int i=0; i < count; i++) {
+        gettimeofday(&tv1, NULL);
+        s = DELAY_US + tv1.tv_usec;
+        usleep(DELAY_US);
+        gettimeofday(&tv2, NULL);
 
-		diff = (double)(tv2.tv_usec - s)/1e6;
-		diff += (double)(tv2.tv_sec - tv1.tv_sec);
-		if (diff < min)
-			min = diff;
-		if (diff > max)
-			max = diff;
-		avg += diff;
-	}
-	avg *= 1000000.0;
-	min *= 1000000.0;
-	max *= 1000000.0;
-	avg = (double)avg / (double)count;
-	printf("min: %.3f us\nmax: %.3f us\nAverage: %.3f us\n", min, max, avg);
-	return 0;
+        diff = (double)(tv2.tv_usec - s)/1e6;
+        diff += (double)(tv2.tv_sec - tv1.tv_sec);
+        if (diff < min) {
+            min = diff;
+        }
+        if (diff > max) {
+            max = diff;
+        }
+        avg += diff;
+    }
+    avg *= 1000000.0;
+    min *= 1000000.0;
+    max *= 1000000.0;
+    avg = (double)avg / (double)count;
+    printf("min: %.3f us\nmax: %.3f us\nAverage: %.3f us\n", min, max, avg);
+    return 0;
 }

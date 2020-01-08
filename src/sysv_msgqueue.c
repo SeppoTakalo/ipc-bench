@@ -45,106 +45,107 @@ struct msgbuf {
     char mtext[1];    /* message data */
 };
 
-int main(int argc, char *argv[]) {
-  int mq_up;
-  int mq_down;
+int main(int argc, char *argv[])
+{
+    int mq_up;
+    int mq_down;
 
-  int size;
-  struct msgbuf *buf;
-  int64_t count, i, delta;
+    int size;
+    struct msgbuf *buf;
+    int64_t count, i, delta;
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-  struct timespec start, stop;
+    struct timespec start, stop;
 #else
-  struct timeval start, stop;
+    struct timeval start, stop;
 #endif
 
-  if (argc != 3) {
-    printf("usage: pipe_lat <message-size> <roundtrip-count>\n");
-    return 1;
-  }
-
-  size = atoi(argv[1]);
-  count = atol(argv[2]);
-
-  buf = (struct msgbuf *)malloc(size + sizeof(struct msgbuf));
-  if (buf == NULL) {
-    perror("malloc");
-    return 1;
-  }
-  buf->mtype = 1; // Must be positive integer
-
-  printf("message size: %i octets\n", size);
-  printf("roundtrip count: %li\n", count);
-
-  mq_up = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
-  mq_down = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
-
-  if ((-1 == mq_up) || (-1 == mq_down)) {
-    perror("msgget");
-    return 1;
-  }
-
-  if (!fork()) { /* child */
-    for (i = 0; i < count; i++) {
-      if (msgrcv(mq_down, buf, size, 0, 0) < 0) {
-        perror("msgrcv");
+    if (argc != 3) {
+        printf("usage: pipe_lat <message-size> <roundtrip-count>\n");
         return 1;
-      }
-
-      if (msgsnd(mq_up, buf, size, 0)) {
-        perror("msgsnd");
-        return 1;
-      }
     }
-  } else { /* parent */
+
+    size = atoi(argv[1]);
+    count = atol(argv[2]);
+
+    buf = (struct msgbuf *)malloc(size + sizeof(struct msgbuf));
+    if (buf == NULL) {
+        perror("malloc");
+        return 1;
+    }
+    buf->mtype = 1; // Must be positive integer
+
+    printf("message size: %i octets\n", size);
+    printf("roundtrip count: %li\n", count);
+
+    mq_up = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
+    mq_down = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
+
+    if ((-1 == mq_up) || (-1 == mq_down)) {
+        perror("msgget");
+        return 1;
+    }
+
+    if (!fork()) { /* child */
+        for (i = 0; i < count; i++) {
+            if (msgrcv(mq_down, buf, size, 0, 0) < 0) {
+                perror("msgrcv");
+                return 1;
+            }
+
+            if (msgsnd(mq_up, buf, size, 0)) {
+                perror("msgsnd");
+                return 1;
+            }
+        }
+    } else { /* parent */
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-    if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
-      perror("clock_gettime");
-      return 1;
-    }
+        if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
+            perror("clock_gettime");
+            return 1;
+        }
 #else
-    if (gettimeofday(&start, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
-    }
+        if (gettimeofday(&start, NULL) == -1) {
+            perror("gettimeofday");
+            return 1;
+        }
 #endif
 
-    for (i = 0; i < count; i++) {
-      if (msgsnd(mq_down, buf, size, 0)) {
-        perror("msgsnd");
-        return 1;
-      }
-      if (msgrcv(mq_up, buf, size, 0, 0) < 0) {
-        perror("msgrcv");
-        return 1;
-      }
-    }
+        for (i = 0; i < count; i++) {
+            if (msgsnd(mq_down, buf, size, 0)) {
+                perror("msgsnd");
+                return 1;
+            }
+            if (msgrcv(mq_up, buf, size, 0, 0) < 0) {
+                perror("msgrcv");
+                return 1;
+            }
+        }
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-    if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) {
-      perror("clock_gettime");
-      return 1;
-    }
+        if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) {
+            perror("clock_gettime");
+            return 1;
+        }
 
-    delta = ((stop.tv_sec - start.tv_sec) * 1000000000 +
-             (stop.tv_nsec - start.tv_nsec));
+        delta = ((stop.tv_sec - start.tv_sec) * 1000000000 +
+                 (stop.tv_nsec - start.tv_nsec));
 
 #else
-    if (gettimeofday(&stop, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
-    }
+        if (gettimeofday(&stop, NULL) == -1) {
+            perror("gettimeofday");
+            return 1;
+        }
 
-    delta =
-        (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
+        delta =
+            (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
 
 #endif
 
-    printf("average latency: %li ns\n", delta / (count * 2));
-    msgctl(mq_up, IPC_RMID, NULL);
-    msgctl(mq_down, IPC_RMID, NULL);
-  }
+        printf("average latency: %li ns\n", delta / (count * 2));
+        msgctl(mq_up, IPC_RMID, NULL);
+        msgctl(mq_down, IPC_RMID, NULL);
+    }
 
-  return 0;
+    return 0;
 }

@@ -41,161 +41,162 @@
 #define HAS_CLOCK_GETTIME_MONOTONIC
 #endif
 
-int main(int argc, char *argv[]) {
-  int size;
-  char *buf;
-  int64_t count, i, delta;
+int main(int argc, char *argv[])
+{
+    int size;
+    char *buf;
+    int64_t count, i, delta;
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-  struct timespec start, stop;
+    struct timespec start, stop;
 #else
-  struct timeval start, stop;
+    struct timeval start, stop;
 #endif
 
-  ssize_t len;
-  size_t sofar;
+    ssize_t len;
+    size_t sofar;
 
-  int yes = 1;
-  int ret;
-  struct addrinfo hints;
-  struct addrinfo *resChild;
-  struct addrinfo *resParent;
-  int sockfd;
+    int yes = 1;
+    int ret;
+    struct addrinfo hints;
+    struct addrinfo *resChild;
+    struct addrinfo *resParent;
+    int sockfd;
 
-  if (argc != 3) {
-    printf("usage: udp_lat <message-size> <roundtrip-count>\n");
-    return 1;
-  }
-
-  size = atoi(argv[1]);
-  count = atol(argv[2]);
-
-  buf = malloc(size);
-  if (buf == NULL) {
-    perror("malloc");
-    return 1;
-  }
-
-  memset(&hints, 0, sizeof hints);
-  hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags = AI_PASSIVE; // fill in my IP for me
-  if ((ret = getaddrinfo("127.0.0.1", "3491", &hints, &resParent)) != 0) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
-    return 1;
-  }
-  if ((ret = getaddrinfo("127.0.0.1", "3492", &hints, &resChild)) != 0) {
-    fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
-    return 1;
-  }
-
-  printf("message size: %i octets\n", size);
-  printf("roundtrip count: %lli\n", count);
-
-  if (!fork()) { /* child */
-
-    if ((sockfd = socket(resChild->ai_family, resChild->ai_socktype, resChild->ai_protocol)) ==
-        -1) {
-      perror("socket");
-      return 1;
-    }
-
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-      perror("setsockopt");
-      return 1;
-    }
-
-    if (bind(sockfd, resChild->ai_addr, resChild->ai_addrlen) == -1) {
-      perror("bind");
-      return 1;
-    }
-
-    for (i = 0; i < count; i++) {
-
-      for (sofar = 0; sofar < size;) {
-        len = recvfrom(sockfd, buf, size - sofar, 0, resParent->ai_addr, &resParent->ai_addrlen);
-        if (len == -1) {
-          perror("recvfrom");
-          return 1;
-        }
-        sofar += len;
-      }
-
-      if (sendto(sockfd, buf, size, 0, resParent->ai_addr, resParent->ai_addrlen) != size) {
-        perror("sendto");
+    if (argc != 3) {
+        printf("usage: udp_lat <message-size> <roundtrip-count>\n");
         return 1;
-      }
-    }
-  } else { /* parent */
-
-    sleep(1);
-
-    if ((sockfd = socket(resParent->ai_family, resParent->ai_socktype, resParent->ai_protocol)) ==
-        -1) {
-      perror("socket");
-      return 1;
     }
 
-    if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
-      perror("setsockopt");
-      return 1;
-    }
+    size = atoi(argv[1]);
+    count = atol(argv[2]);
 
-    if (bind(sockfd, resParent->ai_addr, resParent->ai_addrlen) == -1) {
-      perror("bind");
-      return 1;
-    }
-
-#ifdef HAS_CLOCK_GETTIME_MONOTONIC
-    if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
-      perror("clock_gettime");
-      return 1;
-    }
-#else
-    if (gettimeofday(&start, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
-    }
-#endif
-
-    for (i = 0; i < count; i++) {
-
-      if (sendto(sockfd, buf, size, 0, resChild->ai_addr, resChild->ai_addrlen) != size) {
-        perror("sendto");
+    buf = malloc(size);
+    if (buf == NULL) {
+        perror("malloc");
         return 1;
-      }
-
-      for (sofar = 0; sofar < size;) {
-        len = recvfrom(sockfd, buf, size - sofar, 0, resChild->ai_addr, &resChild->ai_addrlen);
-        if (len == -1) {
-          perror("read");
-          return 1;
-        }
-        sofar += len;
-      }
     }
+
+    memset(&hints, 0, sizeof hints);
+    hints.ai_family = AF_UNSPEC; // use IPv4 or IPv6, whichever
+    hints.ai_socktype = SOCK_DGRAM;
+    hints.ai_flags = AI_PASSIVE; // fill in my IP for me
+    if ((ret = getaddrinfo("127.0.0.1", "3491", &hints, &resParent)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
+        return 1;
+    }
+    if ((ret = getaddrinfo("127.0.0.1", "3492", &hints, &resChild)) != 0) {
+        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(ret));
+        return 1;
+    }
+
+    printf("message size: %i octets\n", size);
+    printf("roundtrip count: %lli\n", count);
+
+    if (!fork()) { /* child */
+
+        if ((sockfd = socket(resChild->ai_family, resChild->ai_socktype, resChild->ai_protocol)) ==
+                -1) {
+            perror("socket");
+            return 1;
+        }
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+            perror("setsockopt");
+            return 1;
+        }
+
+        if (bind(sockfd, resChild->ai_addr, resChild->ai_addrlen) == -1) {
+            perror("bind");
+            return 1;
+        }
+
+        for (i = 0; i < count; i++) {
+
+            for (sofar = 0; sofar < size;) {
+                len = recvfrom(sockfd, buf, size - sofar, 0, resParent->ai_addr, &resParent->ai_addrlen);
+                if (len == -1) {
+                    perror("recvfrom");
+                    return 1;
+                }
+                sofar += len;
+            }
+
+            if (sendto(sockfd, buf, size, 0, resParent->ai_addr, resParent->ai_addrlen) != size) {
+                perror("sendto");
+                return 1;
+            }
+        }
+    } else { /* parent */
+
+        sleep(1);
+
+        if ((sockfd = socket(resParent->ai_family, resParent->ai_socktype, resParent->ai_protocol)) ==
+                -1) {
+            perror("socket");
+            return 1;
+        }
+
+        if (setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int)) == -1) {
+            perror("setsockopt");
+            return 1;
+        }
+
+        if (bind(sockfd, resParent->ai_addr, resParent->ai_addrlen) == -1) {
+            perror("bind");
+            return 1;
+        }
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-    if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) {
-      perror("clock_gettime");
-      return 1;
-    }
+        if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
+            perror("clock_gettime");
+            return 1;
+        }
+#else
+        if (gettimeofday(&start, NULL) == -1) {
+            perror("gettimeofday");
+            return 1;
+        }
+#endif
 
-    delta = ((stop.tv_sec - start.tv_sec) * 1000000000 +
-             (stop.tv_nsec - start.tv_nsec));
+        for (i = 0; i < count; i++) {
+
+            if (sendto(sockfd, buf, size, 0, resChild->ai_addr, resChild->ai_addrlen) != size) {
+                perror("sendto");
+                return 1;
+            }
+
+            for (sofar = 0; sofar < size;) {
+                len = recvfrom(sockfd, buf, size - sofar, 0, resChild->ai_addr, &resChild->ai_addrlen);
+                if (len == -1) {
+                    perror("read");
+                    return 1;
+                }
+                sofar += len;
+            }
+        }
+
+#ifdef HAS_CLOCK_GETTIME_MONOTONIC
+        if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) {
+            perror("clock_gettime");
+            return 1;
+        }
+
+        delta = ((stop.tv_sec - start.tv_sec) * 1000000000 +
+                 (stop.tv_nsec - start.tv_nsec));
 
 #else
-    if (gettimeofday(&stop, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
-    }
+        if (gettimeofday(&stop, NULL) == -1) {
+            perror("gettimeofday");
+            return 1;
+        }
 
-    delta =
-        (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
+        delta =
+            (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
 
 #endif
 
-    printf("average latency: %lli ns\n", delta / (count * 2));
-  }
+        printf("average latency: %lli ns\n", delta / (count * 2));
+    }
 
-  return 0;
+    return 0;
 }

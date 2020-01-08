@@ -15,33 +15,34 @@
 #define HAS_CLOCK_GETTIME_MONOTONIC
 #endif
 
-int main(int argc, char *argv[]) {
-  int i;
-  int64_t count, delta;
+int main(int argc, char *argv[])
+{
+    int i;
+    int64_t count, delta;
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
-  struct timespec start, stop, temp;
+    struct timespec start, stop, temp;
 #else
-  struct timeval start, stop, temp;
+    struct timeval start, stop, temp;
 #endif
 
-  if (argc != 2) {
-    printf("usage: gettimeofday <count>\n");
-    return 1;
-  }
+    if (argc != 2) {
+        printf("usage: gettimeofday <count>\n");
+        return 1;
+    }
 
-  count = atol(argv[1]);
+    count = atol(argv[1]);
 
-  printf("measurements count: %li\n", count);
+    printf("measurements count: %li\n", count);
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
     if (clock_gettime(CLOCK_MONOTONIC, &start) == -1) {
-      perror("clock_gettime");
-      return 1;
+        perror("clock_gettime");
+        return 1;
     }
 #else
     if (gettimeofday(&start, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
+        perror("gettimeofday");
+        return 1;
     }
 #endif
 
@@ -61,8 +62,8 @@ int main(int argc, char *argv[]) {
 
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
     if (clock_gettime(CLOCK_MONOTONIC, &stop) == -1) {
-      perror("clock_gettime");
-      return 1;
+        perror("clock_gettime");
+        return 1;
     }
 
     delta = ((stop.tv_sec - start.tv_sec) * 1000000000 +
@@ -70,8 +71,8 @@ int main(int argc, char *argv[]) {
 
 #else
     if (gettimeofday(&stop, NULL) == -1) {
-      perror("gettimeofday");
-      return 1;
+        perror("gettimeofday");
+        return 1;
     }
 
     delta =
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]) {
 
 #endif
 
-  printf("average latency: %li ns\n", delta / (count * 2));
+    printf("average latency: %li ns\n", delta / (count * 2));
 
-  return 0;
+    return 0;
 }
