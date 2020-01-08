@@ -30,28 +30,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <sys/ipc.h>
-#include <sys/msg.h>
-#include <sys/errno.h>
+#include <sys/types.h>
+#include <sys/sem.h>
+#include <sys/stat.h>
+#include <sys/wait.h>
 
 #if defined(_POSIX_TIMERS) && (_POSIX_TIMERS > 0) &&                           \
     defined(_POSIX_MONOTONIC_CLOCK)
 #define HAS_CLOCK_GETTIME_MONOTONIC
 #endif
 
-struct msgbuf {
-    long mtype;       /* message type, must be > 0 */
-    char mtext[1];    /* message data */
-};
-
 int main(int argc, char *argv[])
 {
-    int mq_up;
-    int mq_down;
-
-    int size;
-    struct msgbuf *buf;
+    int semid;
     int64_t count, i, delta;
 #ifdef HAS_CLOCK_GETTIME_MONOTONIC
     struct timespec start, stop;
@@ -59,41 +53,50 @@ int main(int argc, char *argv[])
     struct timeval start, stop;
 #endif
 
-    if (argc != 3) {
-        printf("usage: %s <message-size> <roundtrip-count>\n", argv[0]);
+    if (argc != 2) {
+        printf("usage: sysv_semaphore <roundtrip-count>\n");
         return 1;
     }
 
-    size = atoi(argv[1]);
-    count = atol(argv[2]);
+    count = atol(argv[1]);
 
-    buf = (struct msgbuf *)malloc(size + sizeof(struct msgbuf));
-    if (buf == NULL) {
-        perror("malloc");
+    printf("roundtrip count: %li\n", (long)count);
+
+    semid = semget(IPC_PRIVATE, 2, IPC_CREAT | S_IRUSR | S_IWUSR);
+
+    if (-1 == semid) {
+        perror("semget");
         return 1;
     }
-    buf->mtype = 1; // Must be positive integer
 
-    printf("message size: %i octets\n", size);
-    printf("roundtrip count: %li\n", count);
-
-    mq_up = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
-    mq_down = msgget(IPC_PRIVATE, 0644 | IPC_CREAT | IPC_EXCL);
-
-    if ((-1 == mq_up) || (-1 == mq_down)) {
-        perror("msgget");
+    /* Init semaphores */
+    u_short vals[2] = {0, 0};
+    union semun semarg = {.array = vals};
+    if (semctl(semid, 0, SETALL, semarg)) {
+        perror("semctl(SETALL)");
         return 1;
     }
 
     if (!fork()) { /* child */
+        struct sembuf sop_wait = {
+            .sem_num = 0,
+            .sem_op = -1,
+            .sem_flg = 0
+        };
+        struct sembuf sop_release = {
+            .sem_num = 1,
+            .sem_op = 1,
+            .sem_flg = 0
+        };
+
         for (i = 0; i < count; i++) {
-            if (msgrcv(mq_down, buf, size, 0, 0) < 0) {
-                perror("msgrcv");
+            if (semop(semid, &sop_release, 1)) {
+                perror("semop");
                 return 1;
             }
 
-            if (msgsnd(mq_up, buf, size, 0)) {
-                perror("msgsnd");
+            if (semop(semid, &sop_wait, 1)) {
+                perror("semop");
                 return 1;
             }
         }
@@ -110,14 +113,25 @@ int main(int argc, char *argv[])
             return 1;
         }
 #endif
+        struct sembuf sop_wait = {
+            .sem_num = 1,
+            .sem_op = -1,
+            .sem_flg = 0
+        };
+        struct sembuf sop_release = {
+            .sem_num = 0,
+            .sem_op = 1,
+            .sem_flg = 0
+        };
 
         for (i = 0; i < count; i++) {
-            if (msgsnd(mq_down, buf, size, 0)) {
-                perror("msgsnd");
+            if (semop(semid, &sop_wait, 1)) {
+                perror("semop");
                 return 1;
             }
-            if (msgrcv(mq_up, buf, size, 0, 0) < 0) {
-                perror("msgrcv");
+
+            if (semop(semid, &sop_release, 1)) {
+                perror("semop");
                 return 1;
             }
         }
@@ -141,10 +155,13 @@ int main(int argc, char *argv[])
             (stop.tv_sec - start.tv_sec) * 1000000000 + (stop.tv_usec - start.tv_usec) * 1000;
 
 #endif
-
-        printf("average latency: %li ns\n", delta / (count * 2));
-        msgctl(mq_up, IPC_RMID, NULL);
-        msgctl(mq_down, IPC_RMID, NULL);
+        int ignore;
+        waitpid(-1, &ignore, 0);
+        if (semctl(semid, 0, IPC_RMID)) {
+            perror("semctl(IPC_RMID)");
+            return 1;
+        }
+        printf("average latency: %lli ns\n", delta / (count * 2));
     }
 
     return 0;
