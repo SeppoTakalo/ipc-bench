@@ -20,4 +20,8 @@ if (NOT APPLE)
  add_executable(posix_sharedmem src/posix_sharedmem.c)
  target_link_libraries(posix_sharedmem pthread)
  target_link_libraries(posix_sharedmem rt)
+
+ add_executable(posix_msgqueue src/posix_msgqueue.c)
+ target_link_libraries(posix_msgqueue pthread)
+ target_link_libraries(posix_msgqueue rt)
 endif()

@@ -43,4 +43,8 @@ if ! [[ "$OSTYPE" == "darwin"* ]]; then
 echo
 echo "POSIX Shared memory with POSIX semaphore"
 ./posix_sharedmem 10000
+
+echo
+echo "POSIX message queue"
+./posix_msgqueue 256 10000
 fi
