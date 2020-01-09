@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 
@@ -37,4 +37,10 @@ echo "System V semaphore:"
 
 echo
 echo "usleep():"
-./wakeup_latency 1000
+./wakeup_latency 10000
+
+if ! [[ "$OSTYPE" == "darwin"* ]]; then
+echo
+echo "POSIX Shared memory with POSIX semaphore"
+./posix_sharedmem 10000
+fi
