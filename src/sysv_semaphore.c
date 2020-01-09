@@ -43,6 +43,16 @@
 #define HAS_CLOCK_GETTIME_MONOTONIC
 #endif
 
+#ifdef __linux__
+union semun {
+    int              val;    /* Value for SETVAL */
+    struct semid_ds *buf;    /* Buffer for IPC_STAT, IPC_SET */
+    unsigned short  *array;  /* Array for GETALL, SETALL */
+    struct seminfo  *__buf;  /* Buffer for IPC_INFO
+                                           (Linux-specific) */
+};
+#endif
+
 int main(int argc, char *argv[])
 {
     int semid;
