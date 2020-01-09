@@ -1,7 +1,8 @@
 /*
-    Measure latency of IPC using unix domain sockets
+    Measure latency of System V semaphore
 
 
+    Copyright (c) 2019 Seppo Takalo <seppo.takalo@arm.com>
     Copyright (c) 2016 Erik Rigtorp <erik@rigtorp.se>
 
     Permission is hereby granted, free of charge, to any person

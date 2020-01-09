@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2003 Paul Herman
+ * Copyright (c) 2019 Seppo Takalo
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
