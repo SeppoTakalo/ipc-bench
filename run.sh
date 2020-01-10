@@ -32,6 +32,10 @@ echo "System V IPC message queue:"
 ./sysv_msgqueue 256 10000
 
 echo
+echo "System V IPC message queue between multiple processes:"
+./sysv_msgqueue_multi 256 1000 10
+
+echo
 echo "System V semaphore:"
 ./sysv_semaphore 10000
 
