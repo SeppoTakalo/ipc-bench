@@ -40,6 +40,10 @@ echo "System V semaphore:"
 ./sysv_semaphore 10000
 
 echo
+echo "System V semaphore between multiple processes:"
+./sysv_semaphore_multi 1000 100
+
+echo
 echo "usleep():"
 ./wakeup_latency 10000
 
